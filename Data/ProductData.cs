@@ -4,23 +4,41 @@ namespace OrderSystem.Data;
 
 public static class ProductData
 {
-    private static readonly List<Product> _products = new()
+    public static List<Product> GetAll()
     {
-        new Product { Id = "P01", Name = "Ao thun", Price = 150000, Category = "clothing", Stock = 20 },
-        new Product { Id = "P02", Name = "Quan jean", Price = 450000, Category = "clothing", Stock = 10 },
-        new Product { Id = "P03", Name = "Tai nghe", Price = 890000, Category = "electronics", Stock = 5 },
-        new Product { Id = "P04", Name = "Sac du phong", Price = 350000, Category = "electronics", Stock = 8 },
-    };
+        using var db = new AppDbContext();
+        return db.Products.ToList();
+    }
 
-    public static List<Product> GetAll() => _products;
+    public static Product? FindById(string id)
+    {
+        using var db = new AppDbContext();
+        return db.Products.Find(id);
+    }
 
-    public static Product? FindById(string id) => _products.FirstOrDefault(p => p.Id == id);
+    public static void SaveChanges(Product product)
+    {
+        using var db = new AppDbContext();
+        db.Products.Update(product);
+        db.SaveChanges();
+    }
 
     public static void ResetStock()
     {
-        _products[0].Stock = 20;
-        _products[1].Stock = 10;
-        _products[2].Stock = 5;
-        _products[3].Stock = 8;
+        using var db = new AppDbContext();
+        var defaults = new Dictionary<string, int>
+        {
+            { "P01", 20 }, { "P02", 10 }, { "P03", 5 }, { "P04", 8 }
+        };
+
+        foreach (var kvp in defaults)
+        {
+            var product = db.Products.Find(kvp.Key);
+            if (product != null)
+            {
+                product.Stock = kvp.Value;
+            }
+        }
+        db.SaveChanges();
     }
 }

@@ -10,6 +10,11 @@ class Program
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+        using (var db = new AppDbContext())
+        {
+            db.Database.EnsureCreated();
+        }
+
         var orderService = new OrderService();
         var promotionService = new PromotionService();
         var stockService = new StockService();

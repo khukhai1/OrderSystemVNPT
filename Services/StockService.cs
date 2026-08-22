@@ -24,9 +24,11 @@ public class StockService
 
         lock (_stockLock)
         {
+            using var db = new AppDbContext();
+
             foreach (var item in orderItems)
             {
-                var product = ProductData.FindById(item.ProductId);
+                var product = db.Products.Find(item.ProductId);
                 if (product == null)
                 {
                     invoice.StockUpdated = false;
@@ -43,10 +45,11 @@ public class StockService
 
             foreach (var item in orderItems)
             {
-                var product = ProductData.FindById(item.ProductId)!;
+                var product = db.Products.Find(item.ProductId)!;
                 product.Stock -= item.Quantity;
             }
 
+            db.SaveChanges();
             invoice.StockUpdated = true;
             return true;
         }
