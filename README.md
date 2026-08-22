@@ -9,4 +9,3 @@ dotnet build
 dotnet run
 ```
 
-Chọn menu số 5 để chạy đúng theo đề bài
