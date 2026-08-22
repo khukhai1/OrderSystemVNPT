@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>He thong Don hang & Kho hang</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h2 { color: #1a73e8; margin-bottom: 12px; font-size: 18px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: bold; }
+
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .form-row label { min-width: 80px; font-weight: bold; }
+        .form-row select, .form-row input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-row input { width: 80px; }
+
+        .cart-items { margin: 10px 0; }
+        .cart-item { display: flex; gap: 10px; align-items: center; padding: 4px 0; }
+        .cart-item .remove { color: red; cursor: pointer; font-weight: bold; }
+
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #1a73e8; color: #fff; }
+        .btn-success { background: #34a853; color: #fff; }
+        .btn-warning { background: #ea8600; color: #fff; }
+        .btn-danger { background: #ea4335; color: #fff; }
+        .btn-secondary { background: #666; color: #fff; }
+        button:hover { opacity: 0.85; }
+
+        .result { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 16px; display: none; }
+        .result.show { display: block; }
+        .invoice-title { font-size: 18px; font-weight: bold; color: #1a73e8; margin-bottom: 12px; border-bottom: 2px solid #1a73e8; padding-bottom: 8px; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        .invoice-table th { background: #e8f0fe; color: #1a73e8; padding: 8px 12px; text-align: left; }
+        .invoice-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .invoice-table tr:last-child td { border-bottom: none; }
+        .invoice-summary { display: flex; flex-direction: column; gap: 6px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; }
+        .summary-row.total { font-weight: bold; font-size: 17px; border-top: 2px solid #333; padding-top: 8px; margin-top: 4px; }
+        .summary-row.discount { color: #ea4335; }
+        .summary-row.tax { color: #ea8600; }
+        .summary-row.final { font-size: 20px; color: #34a853; border-top: 2px solid #34a853; padding-top: 10px; margin-top: 6px; }
+        .stock-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; }
+        .stock-success { background: #e6f4ea; color: #137333; }
+        .stock-fail { background: #fce8e6; color: #c5221f; }
+
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HỆ THỐNG ĐƠN HÀNG & KHO HÀNG</h1>
+
+        <div class="card">
+            <h2>Danh sách sản phẩm</h2>
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Ten</th><th>Gia</th><th>Loai</th><th>Ton kho</th></tr>
+                </thead>
+                <tbody id="productTable"></tbody>
+            </table>
+            <button class="btn-danger" onclick="resetStock()">Reset kho hàng</button>
+        </div>
+
+        <div class="card">
+            <h2>Đặt hàng</h2>
+            <div class="form-row">
+                <label>Sản phẩm:</label>
+                <select id="productSelect"></select>
+                <label>Số lượng:</label>
+                <input type="number" id="quantity" value="1" min="1">
+                <button class="btn-secondary" onclick="addToCart()">Thêm</button>
+            </div>
+
+            <div class="cart-items" id="cartItems"></div>
+
+            <div class="form-row">
+                <label>Coupon:</label>
+                <select id="couponSelect">
+                    <option value="">-- Không dùng --</option>
+                    <option value="SALE50K">SALE50K (giảm 50,000đ)</option>
+                    <option value="SALE10PT">SALE10PT (giảm 10%)</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label>Khu vực:</label>
+                <select id="regionSelect">
+                    <option value="noi_thanh">Nội thành (8%)</option>
+                    <option value="ngoai_thanh">Ngoại thành (5%)</option>
+                    <option value="mien_nui">Miền núi (3%)</option>
+                </select>
+            </div>
+
+            <div class="actions">
+                <button class="btn-primary" onclick="submitOrder('part1')">Phần 1: Tính tổng tiền</button>
+                <button class="btn-success" onclick="submitOrder('part2')">Phần 2: + Khuyến mãi</button>
+                <button class="btn-warning" onclick="submitOrder('part3')">Phần 3: Đầy đủ (Thuế + Trừ kho)</button>
+                <button class="btn-danger" onclick="clearOrder()">Xóa & Mua tiếp</button>
+            </div>
+
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let products = [];
+
+        async function loadProducts() {
+            const res = await fetch('/api/products');
+            products = await res.json();
+            renderProductTable();
+            renderProductSelect();
+        }
+
+        function renderProductTable() {
+            const tbody = document.getElementById('productTable');
+            tbody.innerHTML = products.map(p =>
+                `<tr>
+                    <td>${p.id}</td>
+                    <td>${p.name}</td>
+                    <td>${Number(p.price).toLocaleString('vi-VN')}d</td>
+                    <td>${p.category}</td>
+                    <td>${p.stock}</td>
+                </tr>`
+            ).join('');
+        }
+
+        function renderProductSelect() {
+            const select = document.getElementById('productSelect');
+            select.innerHTML = products.map(p =>
+                `<option value="${p.id}">${p.id} - ${p.name} (${Number(p.price).toLocaleString('vi-VN')}d)</option>`
+            ).join('');
+        }
+
+        function addToCart() {
+            const productId = document.getElementById('productSelect').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            if (quantity <= 0) return alert('So luong phai > 0');
+
+            const existing = cart.find(c => c.productId === productId);
+            if (existing) {
+                existing.quantity += quantity;
+            } else {
+                cart.push({ productId, quantity });
+            }
+            renderCart();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function fmt(n) {
+            return Number(n).toLocaleString('vi-VN') + 'd';
+        }
+
+        function renderInvoice(data, part) {
+            let html = '';
+            const titles = { part1: 'Phan 1: Tinh tong tien', part2: 'Phan 2: Khuyen mai', part3: 'Phan 3: Day du' };
+            html += `<div class="invoice-title">${titles[part]}</div>`;
+
+            html += `<table class="invoice-table">
+                <thead><tr><th>San pham</th><th>Don gia</th><th>SL</th><th>Thanh tien</th></tr></thead>
+                <tbody>`;
+            for (const line of data.lines) {
+                html += `<tr>
+                    <td>${line.name}</td>
+                    <td>${fmt(line.unitPrice)}</td>
+                    <td>${line.quantity}</td>
+                    <td>${fmt(line.lineTotal)}</td>
+                </tr>`;
+            }
+            html += `</tbody></table>`;
+
+            html += `<div class="invoice-summary">`;
+            html += `<div class="summary-row total"><span>Tam tinh</span><span>${fmt(data.subtotal)}</span></div>`;
+
+            if (part !== 'part1') {
+                if (data.categoryDiscount > 0) {
+                    html += `<div class="summary-row discount"><span>Giam gia danh muc (mua >= 3 cung loai)</span><span>-${fmt(data.categoryDiscount)}</span></div>`;
+                }
+                if (data.couponCode) {
+                    html += `<div class="summary-row discount"><span>Coupon: ${data.couponCode}</span><span>-${fmt(data.couponDiscount)}</span></div>`;
+                }
+                html += `<div class="summary-row total"><span>Sau khuyen mai</span><span>${fmt(data.total)}</span></div>`;
+            }
+
+            if (part === 'part3') {
+                const pct = (data.taxRate * 100).toFixed(0);
+                html += `<div class="summary-row tax"><span>Thue (${data.region} - ${pct}%)</span><span>+${fmt(data.taxAmount)}</span></div>`;
+                html += `<div class="summary-row final"><span>TONG CONG</span><span>${fmt(data.finalTotal)}</span></div>`;
+
+                if (data.stockUpdated) {
+                    html += `<span class="stock-badge stock-success">Tru kho thanh cong</span>`;
+                } else {
+                    html += `<span class="stock-badge stock-fail">Khong du hang trong kho</span>`;
+                }
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function renderCart() {
+            const div = document.getElementById('cartItems');
+            if (cart.length === 0) {
+                div.innerHTML = '<em>Chua co san pham nao trong gio hang</em>';
+                return;
+            }
+            div.innerHTML = '<strong>Gio hang:</strong>' + cart.map((item, i) => {
+                const p = products.find(p => p.id === item.productId);
+                return `<div class="cart-item">
+                    - ${p ? p.name : item.productId} x${item.quantity}
+                    <span class="remove" onclick="removeFromCart(${i})">X</span>
+                </div>`;
+            }).join('');
+        }
+
+        async function submitOrder(part) {
+            if (cart.length === 0) return alert('Vui long them san pham vao gio hang');
+
+            const couponCode = document.getElementById('couponSelect').value || null;
+            const region = document.getElementById('regionSelect').value;
+
+            let url, body;
+            if (part === 'part1') {
+                url = '/api/order/part1';
+                body = cart;
+            } else {
+                url = `/api/order/${part}`;
+                body = { items: cart, couponCode, region };
+            }
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = renderInvoice(data, part);
+            resultDiv.classList.add('show');
+
+            if (part === 'part3') {
+                await loadProducts();
+            }
+        }
+
+        async function resetStock() {
+            await fetch('/api/reset', { method: 'POST' });
+            await loadProducts();
+            alert('Da reset kho hang!');
+        }
+
+        function clearOrder() {
+            cart = [];
+            renderCart();
+            document.getElementById('couponSelect').value = '';
+            document.getElementById('regionSelect').value = 'noi_thanh';
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            resultDiv.classList.remove('show');
+        }
+
+        renderCart();
+        loadProducts();
+    </script>
+</body>
+</html>
