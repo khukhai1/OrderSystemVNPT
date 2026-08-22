@@ -8,4 +8,4 @@ cd OrderSystem
 dotnet build
 dotnet run
 ```
-
+http://localhost:5050/
